@@ -1,0 +1,518 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DesignAI | UI Generator</title>
+    <meta
+      name="description"
+      content="AI UI Generator with dark glassmorphism layout, prompt panel, conversation history and live preview."
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Sora:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            boxShadow: {
+              glow: "0 0 0 1px rgba(124, 58, 237, 0.35), 0 16px 40px rgba(37, 99, 235, 0.35)",
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      :root {
+        --bg: #0a0a0f;
+        --panel-bg: rgba(255, 255, 255, 0.03);
+        --border: rgba(255, 255, 255, 0.08);
+        --primary-gradient: linear-gradient(135deg, #7c3aed, #2563eb);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text-primary);
+        font-family: "DM Sans", sans-serif;
+      }
+
+      .font-display {
+        font-family: "Sora", sans-serif;
+      }
+
+      .glass {
+        background: var(--panel-bg);
+        border-color: var(--border);
+        backdrop-filter: blur(18px);
+      }
+
+      .gradient-text {
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .gradient-button {
+        background: var(--primary-gradient);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+      }
+
+      .gradient-button:hover {
+        transform: scale(1.02);
+        box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4), 0 10px 35px rgba(37, 99, 235, 0.35);
+      }
+
+      .gradient-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.85;
+      }
+
+      .loading-gradient {
+        background-size: 220% 220%;
+        animation: pulseGradient 1.3s ease-in-out infinite;
+      }
+
+      .fade-up {
+        animation: fadeUp 0.3s ease-out both;
+      }
+
+      .message-user {
+        animation: slideInRight 0.24s ease-out both;
+      }
+
+      .message-ai {
+        animation: slideInLeft 0.24s ease-out both;
+      }
+
+      .smooth-scroll {
+        scroll-behavior: smooth;
+      }
+
+      .grid-pattern {
+        background-color: #0e1018;
+        background-image:
+          linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+        background-size: 26px 26px;
+      }
+
+      .chat-scrollbar::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .chat-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.35);
+        border-radius: 999px;
+      }
+
+      .chat-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes pulseGradient {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      @keyframes slideInRight {
+        from {
+          opacity: 0;
+          transform: translateX(18px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes slideInLeft {
+        from {
+          opacity: 0;
+          transform: translateX(-18px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="min-h-screen flex flex-col">
+      <header class="h-[60px] border-b px-6 glass flex items-center justify-between sticky top-0 z-30 fade-up" style="border-color: var(--border)">
+        <div class="font-display text-xl md:text-2xl tracking-tight font-semibold">
+          <span class="gradient-text">DesignAI</span>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-2 rounded-xl border p-1" style="border-color: var(--border)">
+          <button class="px-4 py-2 text-sm rounded-lg bg-white/10">Generator</button>
+          <button class="px-4 py-2 text-sm rounded-lg text-slate-300 hover:bg-white/5 transition">Templates</button>
+          <button class="px-4 py-2 text-sm rounded-lg text-slate-300 hover:bg-white/5 transition">History</button>
+        </nav>
+
+        <div class="flex items-center gap-3">
+          <button class="h-9 px-4 rounded-lg border text-sm font-medium hover:bg-white/5 transition" style="border-color: var(--border)">
+            New Project
+          </button>
+          <div class="h-9 w-9 rounded-full bg-gradient-to-br from-violet-500 to-blue-500 border" style="border-color: var(--border)" aria-label="User Avatar"></div>
+        </div>
+      </header>
+
+      <main class="flex-1 flex min-h-0">
+        <aside class="w-[380px] shrink-0 border-r p-6 glass flex flex-col fade-up" style="border-color: var(--border)">
+          <section>
+            <h2 class="font-display text-lg font-semibold">Describe your design</h2>
+            <p class="mt-1 text-sm" style="color: var(--text-secondary)">Prompt your UI and generate instantly.</p>
+
+            <textarea
+              id="promptInput"
+              class="mt-4 w-full min-h-[120px] rounded-xl border bg-white/5 px-4 py-3 outline-none focus:ring-2 focus:ring-violet-500/60 transition"
+              style="border-color: var(--border); color: var(--text-primary)"
+              placeholder="A modern dashboard with sidebar navigation,&#10;dark theme, charts and user stats..."
+              aria-label="Design prompt"
+            ></textarea>
+
+            <div class="mt-4 flex flex-wrap gap-2" id="quickTags">
+              <button class="quick-tag px-3 py-1.5 rounded-full text-xs border hover:bg-white/5 transition" style="border-color: var(--border)">Landing Page</button>
+              <button class="quick-tag px-3 py-1.5 rounded-full text-xs border hover:bg-white/5 transition" style="border-color: var(--border)">Dashboard</button>
+              <button class="quick-tag px-3 py-1.5 rounded-full text-xs border hover:bg-white/5 transition" style="border-color: var(--border)">Mobile App</button>
+              <button class="quick-tag px-3 py-1.5 rounded-full text-xs border hover:bg-white/5 transition" style="border-color: var(--border)">E-Commerce</button>
+              <button class="quick-tag px-3 py-1.5 rounded-full text-xs border hover:bg-white/5 transition" style="border-color: var(--border)">Portfolio</button>
+              <button class="quick-tag px-3 py-1.5 rounded-full text-xs border hover:bg-white/5 transition" style="border-color: var(--border)">SaaS</button>
+            </div>
+
+            <button
+              id="generateBtn"
+              class="mt-5 w-full h-12 rounded-xl font-semibold text-white gradient-button flex items-center justify-center gap-2 shadow-glow"
+              type="button"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 3L13.98 8.02L19 10L13.98 11.98L12 17L10.02 11.98L5 10L10.02 8.02L12 3Z" fill="currentColor" />
+                <path d="M18.5 15L19.3 17.2L21.5 18L19.3 18.8L18.5 21L17.7 18.8L15.5 18L17.7 17.2L18.5 15Z" fill="currentColor" />
+              </svg>
+              <span>Generate</span>
+            </button>
+          </section>
+
+          <div class="my-6 h-px bg-white/10"></div>
+
+          <section class="flex-1 min-h-0 flex flex-col">
+            <div class="flex items-center justify-between">
+              <h3 class="font-display text-base font-semibold">Conversation</h3>
+              <button id="clearChat" class="text-xs hover:text-white transition" style="color: var(--text-secondary)">Clear</button>
+            </div>
+
+            <div
+              id="chatHistory"
+              class="mt-3 space-y-3 overflow-y-auto smooth-scroll chat-scrollbar pr-1 max-h-[400px]"
+            ></div>
+          </section>
+        </aside>
+
+        <section class="flex-1 min-w-0 flex flex-col fade-up" style="animation-delay: 80ms">
+          <div class="h-[60px] border-b px-6 flex items-center justify-between" style="border-color: var(--border)">
+            <div class="text-sm" style="color: var(--text-secondary)">
+              <span class="text-slate-100">My Project</span> / Untitled
+            </div>
+
+            <div class="flex items-center gap-2 p-1 rounded-xl border" style="border-color: var(--border)">
+              <button class="device-btn active px-3 py-1.5 text-sm rounded-lg bg-white/10" data-device="desktop">💻 Desktop</button>
+              <button class="device-btn px-3 py-1.5 text-sm rounded-lg text-slate-300 hover:bg-white/5 transition" data-device="tablet">📱 Tablet</button>
+              <button class="device-btn px-3 py-1.5 text-sm rounded-lg text-slate-300 hover:bg-white/5 transition" data-device="mobile">📱 Mobile</button>
+            </div>
+
+            <div class="relative">
+              <button id="exportBtn" class="h-9 px-4 rounded-lg border text-sm hover:bg-white/5 transition" style="border-color: var(--border)">
+                Export ▾
+              </button>
+              <div
+                id="exportMenu"
+                class="hidden absolute right-0 top-11 w-44 rounded-xl border glass p-1 z-30"
+                style="border-color: var(--border)"
+              >
+                <button class="export-item w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-white/10">Export HTML</button>
+                <button class="export-item w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-white/10">Export React</button>
+                <button class="export-item w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-white/10">Export JSON</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-1 p-6 overflow-auto">
+            <div class="grid-pattern min-h-full rounded-2xl border p-6 md:p-8 flex items-center justify-center" style="border-color: var(--border)">
+              <div
+                id="frameWrapper"
+                class="bg-white rounded-2xl shadow-[0_18px_60px_rgba(0,0,0,0.45)] border border-slate-200 overflow-hidden transition-all duration-300"
+                style="width: 1280px; height: 720px"
+              >
+                <iframe
+                  id="previewFrame"
+                  title="Generated UI preview"
+                  class="w-full h-full"
+                ></iframe>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="fixed left-5 bottom-5 z-40">
+      <div class="px-3 py-1.5 rounded-full border text-xs font-medium flex items-center gap-2 glass" style="border-color: var(--border)">
+        <span class="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.9)]"></span>
+        <span style="color: #86efac">Ollama Connected</span>
+      </div>
+    </div>
+
+    <script>
+      const promptInput = document.getElementById("promptInput");
+      const generateBtn = document.getElementById("generateBtn");
+      const chatHistory = document.getElementById("chatHistory");
+      const quickTags = Array.from(document.querySelectorAll(".quick-tag"));
+      const clearChatButton = document.getElementById("clearChat");
+      const deviceButtons = Array.from(document.querySelectorAll(".device-btn"));
+      const frameWrapper = document.getElementById("frameWrapper");
+      const previewFrame = document.getElementById("previewFrame");
+      const exportBtn = document.getElementById("exportBtn");
+      const exportMenu = document.getElementById("exportMenu");
+      const exportItems = Array.from(document.querySelectorAll(".export-item"));
+
+      const deviceSizes = {
+        desktop: { width: 1280, height: 720 },
+        tablet: { width: 834, height: 1112 },
+        mobile: { width: 390, height: 844 },
+      };
+
+      let isLoading = false;
+
+      function escapeHtml(value) {
+        return value
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function autoResizeTextarea() {
+        promptInput.style.height = "auto";
+        promptInput.style.height = `${Math.max(promptInput.scrollHeight, 120)}px`;
+      }
+
+      function setDevice(device) {
+        const size = deviceSizes[device];
+        if (!size) return;
+
+        frameWrapper.style.width = `${size.width}px`;
+        frameWrapper.style.height = `${size.height}px`;
+
+        deviceButtons.forEach((button) => {
+          const active = button.dataset.device === device;
+          button.classList.toggle("active", active);
+          button.classList.toggle("bg-white/10", active);
+          button.classList.toggle("text-slate-300", !active);
+        });
+      }
+
+      function addMessage(role, text) {
+        const row = document.createElement("div");
+        row.className = `flex ${role === "user" ? "justify-end" : "justify-start"}`;
+
+        const bubble = document.createElement("div");
+        bubble.className = [
+          "max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-relaxed border",
+          role === "user"
+            ? "message-user bg-violet-500/20 border-violet-400/35"
+            : "message-ai bg-white/5 border-white/10",
+        ].join(" ");
+
+        bubble.textContent = text;
+        row.appendChild(bubble);
+        chatHistory.appendChild(row);
+
+        chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: "smooth" });
+      }
+
+      function setLoadingState(loading) {
+        isLoading = loading;
+        generateBtn.disabled = loading;
+        generateBtn.classList.toggle("loading-gradient", loading);
+        generateBtn.querySelector("span").textContent = loading ? "Generating..." : "Generate";
+      }
+
+      function getMockAssistantReply(prompt) {
+        const summary = prompt.length > 80 ? `${prompt.slice(0, 80)}...` : prompt;
+        return `Done. I generated a dark glassmorphism layout based on: "${summary}". You can tweak spacing, typography, and export from the toolbar.`;
+      }
+
+      function updatePreview(prompt) {
+        const safePrompt = escapeHtml(prompt || "A modern dashboard with dark theme and analytics cards.");
+        const now = new Date().toLocaleTimeString();
+
+        previewFrame.srcdoc = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Preview</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: "Inter", system-ui, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+      }
+      .card {
+        width: min(92%, 920px);
+        border-radius: 20px;
+        padding: 28px;
+        background: linear-gradient(135deg, #1e1b4b, #1d4ed8);
+        box-shadow: 0 14px 44px rgba(0, 0, 0, 0.35);
+      }
+      .label {
+        display: inline-block;
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+      }
+      h1 {
+        margin: 12px 0 8px;
+        font-size: 32px;
+      }
+      p {
+        margin: 0;
+        color: rgba(241, 245, 249, 0.9);
+        line-height: 1.55;
+      }
+      .meta {
+        margin-top: 16px;
+        font-size: 12px;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <span class="label">Generated Preview</span>
+      <h1>DesignAI Output</h1>
+      <p>${safePrompt}</p>
+      <div class="meta">Rendered at ${now}</div>
+    </div>
+  </body>
+</html>`;
+      }
+
+      async function handleGenerate() {
+        const prompt = promptInput.value.trim();
+        if (!prompt || isLoading) return;
+
+        addMessage("user", prompt);
+        setLoadingState(true);
+
+        await new Promise((resolve) => setTimeout(resolve, 900));
+
+        updatePreview(prompt);
+        addMessage("assistant", getMockAssistantReply(prompt));
+        setLoadingState(false);
+      }
+
+      function appendTag(tag) {
+        const current = promptInput.value.trim();
+        if (!current) {
+          promptInput.value = tag;
+        } else if (!current.toLowerCase().includes(tag.toLowerCase())) {
+          promptInput.value = `${current}, ${tag}`;
+        }
+
+        autoResizeTextarea();
+        promptInput.focus();
+      }
+
+      generateBtn.addEventListener("click", handleGenerate);
+
+      promptInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && event.ctrlKey) {
+          event.preventDefault();
+          handleGenerate();
+        }
+      });
+
+      promptInput.addEventListener("input", autoResizeTextarea);
+
+      quickTags.forEach((tagButton) => {
+        tagButton.addEventListener("click", () => {
+          appendTag(tagButton.textContent.trim());
+        });
+      });
+
+      clearChatButton.addEventListener("click", () => {
+        chatHistory.innerHTML = "";
+      });
+
+      deviceButtons.forEach((button) => {
+        button.addEventListener("click", () => setDevice(button.dataset.device));
+      });
+
+      exportBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        exportMenu.classList.toggle("hidden");
+      });
+
+      exportItems.forEach((item) => {
+        item.addEventListener("click", () => {
+          exportMenu.classList.add("hidden");
+          addMessage("assistant", `${item.textContent.trim()} finished successfully.`);
+        });
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!exportMenu.classList.contains("hidden") && !event.target.closest("#exportBtn") && !event.target.closest("#exportMenu")) {
+          exportMenu.classList.add("hidden");
+        }
+      });
+
+      setDevice("desktop");
+      autoResizeTextarea();
+      updatePreview("");
+      addMessage("assistant", "Welcome back. Describe your UI idea and press Generate (Ctrl+Enter).");
+    </script>
+  </body>
+</html>
