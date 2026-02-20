@@ -251,33 +251,34 @@
         <div class="w-full max-w-md glass rounded-2xl p-6 md:p-7 shadow-soft-xl">
           <div class="text-center mb-6">
             <h2 class="font-display text-2xl font-semibold">Login to DesignAI Pro</h2>
-            <p class="text-sm text-slate-400 mt-1">Secure access to your generator workspace.</p>
+            <p class="text-sm text-slate-400 mt-1">Secure access to your generator workspace. Demo mode allows direct dashboard access.</p>
           </div>
 
           <form id="loginForm" class="space-y-4">
             <div>
               <label for="loginName" class="text-sm text-slate-300">Full Name</label>
-              <input id="loginName" name="loginName" type="text" class="mt-1 w-full h-11 rounded-xl border bg-white/5 px-3 outline-none focus:ring-2 focus:ring-violet-500/60" style="border-color: var(--border)" placeholder="Alex Morgan" required />
+              <input id="loginName" name="loginName" type="text" class="mt-1 w-full h-11 rounded-xl border bg-white/5 px-3 outline-none focus:ring-2 focus:ring-violet-500/60" style="border-color: var(--border)" placeholder="Alex Morgan" />
             </div>
 
             <div>
               <label for="loginEmail" class="text-sm text-slate-300">Business Email</label>
-              <input id="loginEmail" name="loginEmail" type="email" class="mt-1 w-full h-11 rounded-xl border bg-white/5 px-3 outline-none focus:ring-2 focus:ring-violet-500/60" style="border-color: var(--border)" placeholder="alex@company.com" required />
+              <input id="loginEmail" name="loginEmail" type="email" class="mt-1 w-full h-11 rounded-xl border bg-white/5 px-3 outline-none focus:ring-2 focus:ring-violet-500/60" style="border-color: var(--border)" placeholder="alex@company.com" />
             </div>
 
             <div>
               <label for="loginPassword" class="text-sm text-slate-300">Password</label>
-              <input id="loginPassword" name="loginPassword" type="password" class="mt-1 w-full h-11 rounded-xl border bg-white/5 px-3 outline-none focus:ring-2 focus:ring-violet-500/60" style="border-color: var(--border)" placeholder="Min. 8 Zeichen" required />
+              <input id="loginPassword" name="loginPassword" type="password" class="mt-1 w-full h-11 rounded-xl border bg-white/5 px-3 outline-none focus:ring-2 focus:ring-violet-500/60" style="border-color: var(--border)" placeholder="Min. 8 Zeichen" />
             </div>
 
             <div>
               <label for="loginCompany" class="text-sm text-slate-300">Company</label>
-              <input id="loginCompany" name="loginCompany" type="text" class="mt-1 w-full h-11 rounded-xl border bg-white/5 px-3 outline-none focus:ring-2 focus:ring-violet-500/60" style="border-color: var(--border)" placeholder="Acme GmbH" required />
+              <input id="loginCompany" name="loginCompany" type="text" class="mt-1 w-full h-11 rounded-xl border bg-white/5 px-3 outline-none focus:ring-2 focus:ring-violet-500/60" style="border-color: var(--border)" placeholder="Acme GmbH" />
             </div>
 
-            <p id="authError" class="text-sm text-rose-400 hidden"></p>
+            <p id="authError" class="text-sm text-amber-300 hidden"></p>
 
             <button id="loginSubmitBtn" type="submit" class="w-full h-11 rounded-xl gradient-bg font-semibold button-interactive">Sign In</button>
+            <button id="authContinueBtn" type="button" class="w-full h-11 rounded-xl border text-sm text-slate-200 hover:bg-white/5 transition" style="border-color: var(--border)">Continue to Dashboard</button>
           </form>
 
           <div class="mt-5 flex items-center justify-between text-sm">
@@ -414,3 +415,4 @@
     <script type="module" src="./dist/app.js"></script>
   </body>
 </html>
+

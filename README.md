@@ -1,23 +1,42 @@
 ﻿# AI UI Generator
 
-High-end Dark Theme AI UI Generator with:
+High-end dark theme UI generator with three-page flow:
 - Landing page
-- Login gate
-- Generator workspace with Tailwind CDN
-- TypeScript business logic (session, credits, history, export)
+- Login page
+- Dashboard (generator workspace)
 
-## Run
+## Login Flow
+
+- You can always reach the login page from landing.
+- You can always continue from login to dashboard:
+  - `Sign In` (normal form submit)
+  - `Continue to Dashboard` (fast-track/demo)
+
+No hard auth backend is required for this prototype flow.
+
+## Project Structure
+
+- `index.html`: UI layout and Tailwind CDN styling
+- `src/app.ts`: application orchestration and event wiring
+- `src/types.ts`: shared types
+- `src/config/constants.ts`: central constants
+- `src/services/auth.service.ts`: login resolution and guest session logic
+- `src/services/generator.service.ts`: prompt validation and preview generation
+- `src/services/storage.service.ts`: localStorage persistence
+- `src/ui/chat.ts`: chat bubble rendering
+- `src/ui/view.ts`: landing/login/dashboard view switching
+- `src/utils/dom.ts`: DOM helper utilities
+- `src/utils/helpers.ts`: formatting/time/download helpers
+
+## Development
 
 1. Install dependencies
-   npm install
+   - `npm install`
+2. Build (typecheck + bundle)
+   - `npm run build`
+3. Open app
+   - `index.html`
 
-2. Build TypeScript
-   npm run build
+## Output
 
-3. Open in browser
-   index.html
-
-## Notes
-
-- App script is compiled to `dist/app.js`.
-- Session and generation history are stored in `localStorage`.
+- Bundled browser script: `dist/app.js`

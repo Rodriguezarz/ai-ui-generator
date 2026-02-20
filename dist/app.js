@@ -1,366 +1,148 @@
-"use strict";
-const STORAGE_KEYS = {
-    session: "designai.session",
-    records: "designai.records",
-    credits: "designai.credits",
+// src/config/constants.ts
+var STORAGE_KEYS = {
+  session: "designai.session",
+  records: "designai.records",
+  credits: "designai.credits"
 };
-const DAILY_CREDIT_LIMIT = 20;
-const MAX_RECORDS = 50;
-const BLOCKED_TERMS = ["malware", "phishing", "exploit", "keylogger"];
-const DEVICE_SIZES = {
-    desktop: { width: 1280, height: 720 },
-    tablet: { width: 834, height: 1112 },
-    mobile: { width: 390, height: 844 },
+var DAILY_CREDIT_LIMIT = 20;
+var MAX_RECORDS = 50;
+var BLOCKED_TERMS = ["malware", "phishing", "exploit", "keylogger"];
+var DEVICE_SIZES = {
+  desktop: { width: 1280, height: 720 },
+  tablet: { width: 834, height: 1112 },
+  mobile: { width: 390, height: 844 }
 };
-const landingView = getElement("landingView");
-const authView = getElement("authView");
-const generatorView = getElement("generatorView");
-const statusBar = getElement("statusBar");
-const landingLoginBtn = getElement("landingLoginBtn");
-const landingGetStartedBtn = getElement("landingGetStartedBtn");
-const landingDemoBtn = getElement("landingDemoBtn");
-const landingPricingBtn = getElement("landingPricingBtn");
-const authBackBtn = getElement("authBackBtn");
-const loginForm = getElement("loginForm");
-const loginSubmitBtn = getElement("loginSubmitBtn");
-const authError = getElement("authError");
-const loginNameInput = getElement("loginName");
-const loginEmailInput = getElement("loginEmail");
-const loginPasswordInput = getElement("loginPassword");
-const loginCompanyInput = getElement("loginCompany");
-const creditsCount = getElement("creditsCount");
-const profileName = getElement("profileName");
-const profileAvatar = getElement("profileAvatar");
-const logoutBtn = getElement("logoutBtn");
-const newProjectBtn = getElement("newProjectBtn");
-const promptInput = getElement("promptInput");
-const templateSelect = getElement("templateSelect");
-const toneSelect = getElement("toneSelect");
-const generateBtn = getElement("generateBtn");
-const generateBtnLabel = getElement("generateBtnLabel");
-const clearChatBtn = getElement("clearChatBtn");
-const chatHistory = getElement("chatHistory");
-const projectNameInput = getElement("projectNameInput");
-const frameWrapper = getElement("frameWrapper");
-const previewFrame = getElement("previewFrame");
-const exportBtn = getElement("exportBtn");
-const exportMenu = getElement("exportMenu");
-const exportItems = Array.from(document.querySelectorAll(".export-item"));
-const quickTags = Array.from(document.querySelectorAll(".quick-tag"));
-const deviceButtons = Array.from(document.querySelectorAll(".device-btn"));
-const state = {
-    view: "landing",
-    session: loadSession(),
-    records: loadRecords(),
-    credits: loadCredits(),
-    loading: false,
-    activeDevice: "desktop",
-};
-init();
-function init() {
-    bindEvents();
-    setDevice("desktop");
-    autoResizePrompt();
-    if (state.session) {
-        setView("generator");
-    }
-    else {
-        setView("landing");
-    }
-    hydrateFromRecords();
-    renderHeaderState();
-    updatePreviewFromLatestRecord();
+
+// src/services/auth.service.ts
+var FALLBACK_NAME = "Guest User";
+var FALLBACK_EMAIL = "guest@local.invalid";
+var FALLBACK_COMPANY = "Independent";
+function isValidEmail(email) {
+  return /^\S+@\S+\.\S+$/.test(email);
 }
-function bindEvents() {
-    landingLoginBtn.addEventListener("click", () => setView("auth"));
-    landingGetStartedBtn.addEventListener("click", () => setView("auth"));
-    landingDemoBtn.addEventListener("click", () => {
-        setView("auth");
-        addChatMessage("assistant", "Login und starte mit einem Prompt wie: 'Executive SaaS analytics dashboard with KPI cards and onboarding funnel'.");
-    });
-    landingPricingBtn.addEventListener("click", () => {
-        addChatMessage("assistant", "Starter: 20 generations/day, Pro: unlimited workspaces and exports.");
-    });
-    authBackBtn.addEventListener("click", () => setView("landing"));
-    loginForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        hideAuthError();
-        const fullName = loginNameInput.value.trim();
-        const email = loginEmailInput.value.trim().toLowerCase();
-        const password = loginPasswordInput.value.trim();
-        const company = loginCompanyInput.value.trim();
-        const validation = validateLogin(fullName, email, password, company);
-        if (validation) {
-            showAuthError(validation);
-            return;
-        }
-        loginSubmitBtn.disabled = true;
-        loginSubmitBtn.classList.add("loading-gradient");
-        loginSubmitBtn.textContent = "Signing in...";
-        await sleep(700);
-        state.session = {
-            fullName,
-            email,
-            company,
-            loginAt: new Date().toISOString(),
-        };
-        saveSession(state.session);
-        renderHeaderState();
-        loginSubmitBtn.disabled = false;
-        loginSubmitBtn.classList.remove("loading-gradient");
-        loginSubmitBtn.textContent = "Sign In";
-        loginForm.reset();
-        setView("generator");
-        addChatMessage("assistant", `Welcome ${fullName}. Your workspace is ready.`);
-    });
-    logoutBtn.addEventListener("click", () => {
-        state.session = null;
-        saveSession(null);
-        setView("landing");
-    });
-    newProjectBtn.addEventListener("click", () => {
-        projectNameInput.value = "Untitled";
-        promptInput.value = "";
-        autoResizePrompt();
-        addChatMessage("assistant", "New project created. Describe your next design brief.");
-    });
-    promptInput.addEventListener("input", autoResizePrompt);
-    promptInput.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" && event.ctrlKey) {
-            event.preventDefault();
-            void handleGenerate();
-        }
-    });
-    generateBtn.addEventListener("click", () => {
-        void handleGenerate();
-    });
-    clearChatBtn.addEventListener("click", () => {
-        chatHistory.innerHTML = "";
-    });
-    quickTags.forEach((button) => {
-        button.addEventListener("click", () => {
-            const value = button.textContent?.trim();
-            if (!value)
-                return;
-            const current = promptInput.value.trim();
-            if (!current) {
-                promptInput.value = value;
-            }
-            else if (!current.toLowerCase().includes(value.toLowerCase())) {
-                promptInput.value = `${current}, ${value}`;
-            }
-            autoResizePrompt();
-            promptInput.focus();
-        });
-    });
-    deviceButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-            const device = button.dataset.device;
-            if (!device)
-                return;
-            setDevice(device);
-        });
-    });
-    exportBtn.addEventListener("click", (event) => {
-        event.stopPropagation();
-        exportMenu.classList.toggle("hidden");
-    });
-    exportItems.forEach((button) => {
-        button.addEventListener("click", () => {
-            const type = button.dataset.export;
-            exportMenu.classList.add("hidden");
-            handleExport(type === "json" ? "json" : "html");
-        });
-    });
-    document.addEventListener("click", (event) => {
-        const target = event.target;
-        if (!target.closest("#exportBtn") && !target.closest("#exportMenu")) {
-            exportMenu.classList.add("hidden");
-        }
-    });
+function sanitize(value) {
+  return value.trim();
 }
-function setView(view) {
-    state.view = view;
-    landingView.classList.toggle("hidden", view !== "landing");
-    authView.classList.toggle("hidden", view !== "auth");
-    generatorView.classList.toggle("hidden", view !== "generator");
-    statusBar.classList.toggle("hidden", view !== "generator");
+function resolveLogin(input) {
+  const notices = [];
+  const normalizedName = sanitize(input.fullName);
+  const normalizedEmail = sanitize(input.email).toLowerCase();
+  const normalizedCompany = sanitize(input.company);
+  const normalizedPassword = sanitize(input.password);
+  const fullName = normalizedName || FALLBACK_NAME;
+  if (!normalizedName) notices.push("Name missing - fallback profile applied.");
+  const email = isValidEmail(normalizedEmail) ? normalizedEmail : FALLBACK_EMAIL;
+  if (!isValidEmail(normalizedEmail)) notices.push("Email not valid - using demo email.");
+  const company = normalizedCompany || FALLBACK_COMPANY;
+  if (!normalizedCompany) notices.push("Company missing - default company assigned.");
+  if (normalizedPassword.length < 8) {
+    notices.push("Password not verified - demo mode login enabled.");
+  }
+  const session = {
+    fullName,
+    email,
+    company,
+    loginAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  return { session, notices };
 }
-function renderHeaderState() {
-    const session = state.session;
-    creditsCount.textContent = String(state.credits);
-    if (!session) {
-        profileName.textContent = "Guest";
-        profileAvatar.textContent = "G";
-        return;
-    }
-    profileName.textContent = `${session.fullName} • ${session.company}`;
-    profileAvatar.textContent = session.fullName.charAt(0).toUpperCase();
+function createGuestSession() {
+  return {
+    fullName: FALLBACK_NAME,
+    email: FALLBACK_EMAIL,
+    company: FALLBACK_COMPANY,
+    loginAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
 }
-async function handleGenerate() {
-    if (state.loading)
-        return;
-    if (!state.session) {
-        setView("auth");
-        showAuthError("Bitte zuerst einloggen, um Designs zu generieren.");
-        return;
-    }
-    const prompt = promptInput.value.trim();
-    const template = templateSelect.value;
-    const tone = toneSelect.value;
-    const promptValidation = validatePrompt(prompt);
-    if (promptValidation) {
-        addChatMessage("assistant", promptValidation);
-        return;
-    }
-    if (state.credits <= 0) {
-        addChatMessage("assistant", "Daily credits exhausted. New credits reset tomorrow.");
-        return;
-    }
-    addChatMessage("user", prompt);
-    setGenerateLoading(true);
-    await sleep(900);
-    const record = buildRecord(prompt, template, tone, state.activeDevice);
-    state.records = [record, ...state.records].slice(0, MAX_RECORDS);
-    saveRecords(state.records);
-    state.credits -= 1;
-    saveCredits(state.credits);
-    renderHeaderState();
-    previewFrame.srcdoc = record.html;
-    const response = `Generated ${record.template} (${record.tone}) with ${record.complexity} complexity. Remaining credits: ${state.credits}.`;
-    addChatMessage("assistant", response);
-    setGenerateLoading(false);
+function getAvatarInitial(name) {
+  const normalized = sanitize(name);
+  return normalized ? normalized.charAt(0).toUpperCase() : "G";
 }
-function buildRecord(prompt, template, tone, device) {
-    const complexity = computeComplexity(prompt);
-    const id = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-    const createdAt = new Date().toISOString();
-    const html = createPreviewHtml({
-        prompt,
-        template,
-        tone,
-        complexity,
-        createdAt,
-    });
-    return {
-        id,
-        prompt,
-        template,
-        tone,
-        createdAt,
-        device,
-        complexity,
-        html,
-    };
+
+// src/utils/helpers.ts
+function sleep(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }
-function updatePreviewFromLatestRecord() {
-    const latest = state.records[0];
-    if (latest) {
-        previewFrame.srcdoc = latest.html;
-        return;
-    }
-    previewFrame.srcdoc = createPreviewHtml({
-        prompt: "No generation yet. Add a prompt and click Generate.",
-        template: "Dashboard",
-        tone: "Executive",
-        complexity: "Low",
-        createdAt: new Date().toISOString(),
-    });
+function escapeHtml(text) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#039;");
 }
-function hydrateFromRecords() {
-    if (state.records.length === 0) {
-        addChatMessage("assistant", "Workspace ready. Press Ctrl+Enter to generate from your prompt.");
-        return;
-    }
-    const recent = [...state.records].slice(0, 6).reverse();
-    recent.forEach((record) => {
-        addChatMessage("user", record.prompt);
-        addChatMessage("assistant", `Generated ${record.template} (${record.tone}) • Complexity: ${record.complexity} • ${formatDateTime(record.createdAt)}`);
-    });
+function formatDateTime(iso) {
+  return new Date(iso).toLocaleString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
-function setGenerateLoading(isLoading) {
-    state.loading = isLoading;
-    generateBtn.disabled = isLoading;
-    generateBtn.classList.toggle("loading-gradient", isLoading);
-    generateBtnLabel.textContent = isLoading ? "Generating..." : "Generate";
+function todayKey() {
+  return (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
 }
-function addChatMessage(role, text) {
-    const row = document.createElement("div");
-    row.className = `flex ${role === "user" ? "justify-end" : "justify-start"}`;
-    const bubble = document.createElement("div");
-    bubble.className = [
-        "max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-relaxed border",
-        role === "user"
-            ? "message-user bg-violet-500/20 border-violet-400/30"
-            : "message-ai bg-white/5 border-white/10",
-    ].join(" ");
-    bubble.textContent = text;
-    row.appendChild(bubble);
-    chatHistory.appendChild(row);
-    chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: "smooth" });
+function downloadFile(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
-function setDevice(device) {
-    state.activeDevice = device;
-    const size = DEVICE_SIZES[device];
-    frameWrapper.style.width = `${size.width}px`;
-    frameWrapper.style.height = `${size.height}px`;
-    deviceButtons.forEach((button) => {
-        const active = button.dataset.device === device;
-        button.classList.toggle("bg-white/10", active);
-        button.classList.toggle("text-slate-300", !active);
-    });
-}
-function handleExport(format) {
-    const latest = state.records[0];
-    if (!latest) {
-        addChatMessage("assistant", "Nothing to export yet. Generate a design first.");
-        return;
-    }
-    if (format === "html") {
-        downloadFile("design-export.html", latest.html, "text/html;charset=utf-8");
-        addChatMessage("assistant", "Export HTML completed.");
-        return;
-    }
-    const payload = JSON.stringify(latest, null, 2);
-    downloadFile("design-export.json", payload, "application/json;charset=utf-8");
-    addChatMessage("assistant", "Export JSON completed.");
-}
-function validateLogin(fullName, email, password, company) {
-    if (fullName.length < 2)
-        return "Bitte einen gueltigen Namen eingeben.";
-    if (!/^\S+@\S+\.\S+$/.test(email))
-        return "Bitte eine gueltige E-Mail eingeben.";
-    if (password.length < 8)
-        return "Passwort muss mindestens 8 Zeichen haben.";
-    if (company.length < 2)
-        return "Bitte eine Firma angeben.";
-    return null;
-}
+
+// src/services/generator.service.ts
 function validatePrompt(prompt) {
-    if (prompt.length < 20) {
-        return "Prompt ist zu kurz. Bitte mindestens 20 Zeichen mit konkretem UI-Kontext eingeben.";
-    }
-    const lowered = prompt.toLowerCase();
-    if (BLOCKED_TERMS.some((term) => lowered.includes(term))) {
-        return "Prompt enthaelt blockierte Sicherheitsbegriffe und wurde abgelehnt.";
-    }
-    return null;
+  if (prompt.trim().length < 20) {
+    return "Prompt ist zu kurz. Bitte mindestens 20 Zeichen mit klarem UI-Kontext eingeben.";
+  }
+  const lowered = prompt.toLowerCase();
+  if (BLOCKED_TERMS.some((term) => lowered.includes(term))) {
+    return "Prompt enthaelt blockierte Begriffe und wurde abgelehnt.";
+  }
+  return null;
 }
 function computeComplexity(prompt) {
-    const wordCount = prompt.split(/\s+/).filter(Boolean).length;
-    if (wordCount >= 40)
-        return "High";
-    if (wordCount >= 20)
-        return "Medium";
-    return "Low";
+  const words = prompt.split(/\s+/).filter(Boolean).length;
+  if (words >= 40) return "High";
+  if (words >= 20) return "Medium";
+  return "Low";
+}
+function buildGenerationRecord(input) {
+  const createdAt = (/* @__PURE__ */ new Date()).toISOString();
+  const complexity = computeComplexity(input.prompt);
+  return {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    prompt: input.prompt,
+    template: input.template,
+    tone: input.tone,
+    createdAt,
+    device: input.device,
+    complexity,
+    html: createPreviewHtml({
+      prompt: input.prompt,
+      template: input.template,
+      tone: input.tone,
+      complexity,
+      createdAt
+    })
+  };
+}
+function createEmptyPreviewHtml() {
+  return createPreviewHtml({
+    prompt: "No generation yet. Add a prompt and click Generate.",
+    template: "Dashboard",
+    tone: "Executive",
+    complexity: "Low",
+    createdAt: (/* @__PURE__ */ new Date()).toISOString()
+  });
 }
 function createPreviewHtml(input) {
-    const safePrompt = escapeHtml(input.prompt);
-    const safeTemplate = escapeHtml(input.template);
-    const safeTone = escapeHtml(input.tone);
-    const safeComplexity = escapeHtml(input.complexity);
-    const safeCreatedAt = escapeHtml(formatDateTime(input.createdAt));
-    return `<!doctype html>
+  const safePrompt = escapeHtml(input.prompt);
+  const safeTemplate = escapeHtml(input.template);
+  const safeTone = escapeHtml(input.tone);
+  const safeComplexity = escapeHtml(input.complexity);
+  const safeCreatedAt = escapeHtml(formatDateTime(input.createdAt));
+  return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -369,7 +151,6 @@ function createPreviewHtml(input) {
     <style>
       :root {
         --bg: #090d19;
-        --card: #111827;
         --line: rgba(148, 163, 184, 0.2);
         --text: #e2e8f0;
       }
@@ -463,114 +244,391 @@ function createPreviewHtml(input) {
   </body>
 </html>`;
 }
-function autoResizePrompt() {
-    promptInput.style.height = "auto";
-    promptInput.style.height = `${Math.max(promptInput.scrollHeight, 120)}px`;
-}
-function hideAuthError() {
-    authError.textContent = "";
-    authError.classList.add("hidden");
-}
-function showAuthError(message) {
-    authError.textContent = message;
-    authError.classList.remove("hidden");
+
+// src/services/storage.service.ts
+function safeParse(raw) {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
 function loadSession() {
-    const raw = localStorage.getItem(STORAGE_KEYS.session);
-    if (!raw)
-        return null;
-    try {
-        return JSON.parse(raw);
-    }
-    catch {
-        return null;
-    }
+  return safeParse(localStorage.getItem(STORAGE_KEYS.session));
 }
 function saveSession(session) {
-    if (!session) {
-        localStorage.removeItem(STORAGE_KEYS.session);
-        return;
-    }
-    localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(session));
+  if (!session) {
+    localStorage.removeItem(STORAGE_KEYS.session);
+    return;
+  }
+  localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(session));
 }
 function loadRecords() {
-    const raw = localStorage.getItem(STORAGE_KEYS.records);
-    if (!raw)
-        return [];
-    try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    }
-    catch {
-        return [];
-    }
+  const parsed = safeParse(localStorage.getItem(STORAGE_KEYS.records));
+  return Array.isArray(parsed) ? parsed : [];
 }
 function saveRecords(records) {
-    localStorage.setItem(STORAGE_KEYS.records, JSON.stringify(records));
+  localStorage.setItem(STORAGE_KEYS.records, JSON.stringify(records));
 }
 function loadCredits() {
-    const today = new Date().toISOString().slice(0, 10);
-    const raw = localStorage.getItem(STORAGE_KEYS.credits);
-    if (!raw) {
-        saveCredits(DAILY_CREDIT_LIMIT, today);
-        return DAILY_CREDIT_LIMIT;
+  const parsed = safeParse(localStorage.getItem(STORAGE_KEYS.credits));
+  const today = todayKey();
+  if (!parsed || parsed.date !== today || typeof parsed.credits !== "number") {
+    saveCredits(DAILY_CREDIT_LIMIT, today);
+    return DAILY_CREDIT_LIMIT;
+  }
+  return Math.max(0, parsed.credits);
+}
+function saveCredits(credits, date = todayKey()) {
+  const payload = {
+    date,
+    credits: Math.max(0, credits)
+  };
+  localStorage.setItem(STORAGE_KEYS.credits, JSON.stringify(payload));
+}
+
+// src/ui/chat.ts
+function addChatMessage(container, role, text) {
+  const row = document.createElement("div");
+  row.className = `flex ${role === "user" ? "justify-end" : "justify-start"}`;
+  const bubble = document.createElement("div");
+  bubble.className = [
+    "max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-relaxed border",
+    role === "user" ? "message-user bg-violet-500/20 border-violet-400/30" : "message-ai bg-white/5 border-white/10"
+  ].join(" ");
+  bubble.textContent = text;
+  row.appendChild(bubble);
+  container.appendChild(row);
+  container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+}
+function clearChat(container) {
+  container.innerHTML = "";
+}
+
+// src/ui/view.ts
+function setView(view, refs2) {
+  refs2.landingView.classList.toggle("hidden", view !== "landing");
+  refs2.authView.classList.toggle("hidden", view !== "auth");
+  refs2.generatorView.classList.toggle("hidden", view !== "generator");
+  refs2.statusBar.classList.toggle("hidden", view !== "generator");
+}
+
+// src/utils/dom.ts
+function getRequiredElement(id) {
+  const element = document.getElementById(id);
+  if (!element) {
+    throw new Error(`Missing required element: ${id}`);
+  }
+  return element;
+}
+function getElements(selector) {
+  return Array.from(document.querySelectorAll(selector));
+}
+
+// src/app.ts
+var refs = buildRefs();
+var state = {
+  view: "landing",
+  session: loadSession(),
+  records: loadRecords(),
+  credits: loadCredits(),
+  loading: false,
+  activeDevice: "desktop"
+};
+bootstrap();
+function bootstrap() {
+  bindLandingEvents();
+  bindAuthEvents();
+  bindGeneratorEvents();
+  bindGlobalEvents();
+  setDevice("desktop");
+  autoResizePrompt();
+  renderHeaderState();
+  hydrateConversation();
+  renderPreviewFromLatestRecord();
+  applyView(state.session ? "generator" : "landing");
+}
+function buildRefs() {
+  return {
+    landingView: getRequiredElement("landingView"),
+    authView: getRequiredElement("authView"),
+    generatorView: getRequiredElement("generatorView"),
+    statusBar: getRequiredElement("statusBar"),
+    landingLoginBtn: getRequiredElement("landingLoginBtn"),
+    landingGetStartedBtn: getRequiredElement("landingGetStartedBtn"),
+    landingDemoBtn: getRequiredElement("landingDemoBtn"),
+    landingPricingBtn: getRequiredElement("landingPricingBtn"),
+    authBackBtn: getRequiredElement("authBackBtn"),
+    authContinueBtn: getRequiredElement("authContinueBtn"),
+    loginForm: getRequiredElement("loginForm"),
+    loginSubmitBtn: getRequiredElement("loginSubmitBtn"),
+    authHint: getRequiredElement("authError"),
+    loginNameInput: getRequiredElement("loginName"),
+    loginEmailInput: getRequiredElement("loginEmail"),
+    loginPasswordInput: getRequiredElement("loginPassword"),
+    loginCompanyInput: getRequiredElement("loginCompany"),
+    creditsCount: getRequiredElement("creditsCount"),
+    profileName: getRequiredElement("profileName"),
+    profileAvatar: getRequiredElement("profileAvatar"),
+    logoutBtn: getRequiredElement("logoutBtn"),
+    newProjectBtn: getRequiredElement("newProjectBtn"),
+    promptInput: getRequiredElement("promptInput"),
+    templateSelect: getRequiredElement("templateSelect"),
+    toneSelect: getRequiredElement("toneSelect"),
+    generateBtn: getRequiredElement("generateBtn"),
+    generateBtnLabel: getRequiredElement("generateBtnLabel"),
+    clearChatBtn: getRequiredElement("clearChatBtn"),
+    chatHistory: getRequiredElement("chatHistory"),
+    projectNameInput: getRequiredElement("projectNameInput"),
+    frameWrapper: getRequiredElement("frameWrapper"),
+    previewFrame: getRequiredElement("previewFrame"),
+    exportBtn: getRequiredElement("exportBtn"),
+    exportMenu: getRequiredElement("exportMenu"),
+    exportItems: getElements(".export-item"),
+    quickTags: getElements(".quick-tag"),
+    deviceButtons: getElements(".device-btn")
+  };
+}
+function bindLandingEvents() {
+  refs.landingLoginBtn.addEventListener("click", () => applyView("auth"));
+  refs.landingGetStartedBtn.addEventListener("click", () => applyView("auth"));
+  refs.landingDemoBtn.addEventListener("click", () => {
+    applyView("auth");
+    setAuthHint("Demo mode active. You can continue to dashboard without valid credentials.");
+  });
+  refs.landingPricingBtn.addEventListener("click", () => {
+    applyView("auth");
+    setAuthHint("Starter: 20 credits/day. Pro: unlimited projects and team features.");
+  });
+}
+function bindAuthEvents() {
+  refs.authBackBtn.addEventListener("click", () => {
+    applyView("landing");
+    clearAuthHint();
+  });
+  refs.authContinueBtn.addEventListener("click", () => {
+    completeLogin(createGuestSession(), ["Fast-track enabled. Logged in with guest profile."]);
+  });
+  refs.loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearAuthHint();
+    const input = readLoginInput();
+    await simulateLoginTransition();
+    const resolution = resolveLogin(input);
+    completeLogin(resolution.session, resolution.notices);
+  });
+}
+function bindGeneratorEvents() {
+  refs.logoutBtn.addEventListener("click", () => {
+    state.session = null;
+    saveSession(null);
+    applyView("auth");
+    setAuthHint("You are logged out. Login again or continue directly to dashboard.");
+    renderHeaderState();
+  });
+  refs.newProjectBtn.addEventListener("click", () => {
+    refs.projectNameInput.value = "Untitled";
+    refs.promptInput.value = "";
+    autoResizePrompt();
+    addChatMessage(refs.chatHistory, "assistant", "New project created. Describe your next design brief.");
+  });
+  refs.promptInput.addEventListener("input", autoResizePrompt);
+  refs.promptInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && event.ctrlKey) {
+      event.preventDefault();
+      void handleGenerate();
     }
-    try {
-        const parsed = JSON.parse(raw);
-        if (parsed.date !== today) {
-            saveCredits(DAILY_CREDIT_LIMIT, today);
-            return DAILY_CREDIT_LIMIT;
-        }
-        if (typeof parsed.credits !== "number") {
-            saveCredits(DAILY_CREDIT_LIMIT, today);
-            return DAILY_CREDIT_LIMIT;
-        }
-        return parsed.credits;
-    }
-    catch {
-        saveCredits(DAILY_CREDIT_LIMIT, today);
-        return DAILY_CREDIT_LIMIT;
-    }
-}
-function saveCredits(credits, date = new Date().toISOString().slice(0, 10)) {
-    const payload = { date, credits: Math.max(0, credits) };
-    localStorage.setItem(STORAGE_KEYS.credits, JSON.stringify(payload));
-}
-function downloadFile(filename, content, mimeType) {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-}
-function escapeHtml(text) {
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/\"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-function formatDateTime(iso) {
-    return new Date(iso).toLocaleString("de-DE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
+  });
+  refs.generateBtn.addEventListener("click", () => {
+    void handleGenerate();
+  });
+  refs.clearChatBtn.addEventListener("click", () => {
+    clearChat(refs.chatHistory);
+  });
+  refs.quickTags.forEach((button) => {
+    button.addEventListener("click", () => {
+      const tag = button.textContent?.trim();
+      if (!tag) return;
+      const current = refs.promptInput.value.trim();
+      if (!current) {
+        refs.promptInput.value = tag;
+      } else if (!current.toLowerCase().includes(tag.toLowerCase())) {
+        refs.promptInput.value = `${current}, ${tag}`;
+      }
+      autoResizePrompt();
+      refs.promptInput.focus();
     });
-}
-function sleep(ms) {
-    return new Promise((resolve) => {
-        window.setTimeout(resolve, ms);
+  });
+  refs.deviceButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const device = button.dataset.device;
+      if (!device) return;
+      setDevice(device);
     });
+  });
+  refs.exportBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    refs.exportMenu.classList.toggle("hidden");
+  });
+  refs.exportItems.forEach((button) => {
+    button.addEventListener("click", () => {
+      refs.exportMenu.classList.add("hidden");
+      const type = button.dataset.export === "json" ? "json" : "html";
+      handleExport(type);
+    });
+  });
 }
-function getElement(id) {
-    const element = document.getElementById(id);
-    if (!element) {
-        throw new Error(`Missing required element: ${id}`);
+function bindGlobalEvents() {
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!target.closest("#exportBtn") && !target.closest("#exportMenu")) {
+      refs.exportMenu.classList.add("hidden");
     }
-    return element;
+  });
+}
+function applyView(view) {
+  state.view = view;
+  setView(view, refs);
+}
+function readLoginInput() {
+  return {
+    fullName: refs.loginNameInput.value,
+    email: refs.loginEmailInput.value,
+    password: refs.loginPasswordInput.value,
+    company: refs.loginCompanyInput.value
+  };
+}
+async function simulateLoginTransition() {
+  refs.loginSubmitBtn.disabled = true;
+  refs.loginSubmitBtn.classList.add("loading-gradient");
+  refs.loginSubmitBtn.textContent = "Signing in...";
+  await sleep(550);
+  refs.loginSubmitBtn.disabled = false;
+  refs.loginSubmitBtn.classList.remove("loading-gradient");
+  refs.loginSubmitBtn.textContent = "Sign In";
+}
+function completeLogin(session, notices) {
+  state.session = session;
+  saveSession(session);
+  renderHeaderState();
+  applyView("generator");
+  refs.loginForm.reset();
+  clearAuthHint();
+  addChatMessage(refs.chatHistory, "assistant", `Welcome ${session.fullName}. Dashboard unlocked.`);
+  if (notices.length > 0) {
+    addChatMessage(refs.chatHistory, "assistant", `Login notices: ${notices.join(" ")}`);
+  }
+}
+function renderHeaderState() {
+  refs.creditsCount.textContent = String(state.credits);
+  if (!state.session) {
+    refs.profileName.textContent = "Guest";
+    refs.profileAvatar.textContent = "G";
+    return;
+  }
+  refs.profileName.textContent = `${state.session.fullName} \u2022 ${state.session.company}`;
+  refs.profileAvatar.textContent = getAvatarInitial(state.session.fullName);
+}
+function hydrateConversation() {
+  if (state.records.length === 0) {
+    addChatMessage(refs.chatHistory, "assistant", "Workspace ready. Press Ctrl+Enter to generate.");
+    return;
+  }
+  const recent = [...state.records].slice(0, 6).reverse();
+  recent.forEach((record) => {
+    addChatMessage(refs.chatHistory, "user", record.prompt);
+    addChatMessage(
+      refs.chatHistory,
+      "assistant",
+      `Generated ${record.template} (${record.tone}) \u2022 Complexity: ${record.complexity} \u2022 ${formatDateTime(record.createdAt)}`
+    );
+  });
+}
+function renderPreviewFromLatestRecord() {
+  const latest = state.records[0];
+  refs.previewFrame.srcdoc = latest ? latest.html : createEmptyPreviewHtml();
+}
+function setDevice(device) {
+  state.activeDevice = device;
+  const size = DEVICE_SIZES[device];
+  refs.frameWrapper.style.width = `${size.width}px`;
+  refs.frameWrapper.style.height = `${size.height}px`;
+  refs.deviceButtons.forEach((button) => {
+    const active = button.dataset.device === device;
+    button.classList.toggle("bg-white/10", active);
+    button.classList.toggle("text-slate-300", !active);
+  });
+}
+async function handleGenerate() {
+  if (state.loading) return;
+  if (!state.session) {
+    applyView("auth");
+    setAuthHint("Please open login page and continue to dashboard first.");
+    return;
+  }
+  const prompt = refs.promptInput.value.trim();
+  const validationError = validatePrompt(prompt);
+  if (validationError) {
+    addChatMessage(refs.chatHistory, "assistant", validationError);
+    return;
+  }
+  if (state.credits <= 0) {
+    addChatMessage(refs.chatHistory, "assistant", "Daily credits exhausted. New credits reset tomorrow.");
+    return;
+  }
+  addChatMessage(refs.chatHistory, "user", prompt);
+  setGenerateLoading(true);
+  await sleep(900);
+  const record = buildGenerationRecord({
+    prompt,
+    template: refs.templateSelect.value,
+    tone: refs.toneSelect.value,
+    device: state.activeDevice
+  });
+  state.records = [record, ...state.records].slice(0, MAX_RECORDS);
+  saveRecords(state.records);
+  state.credits -= 1;
+  saveCredits(state.credits);
+  renderHeaderState();
+  refs.previewFrame.srcdoc = record.html;
+  addChatMessage(
+    refs.chatHistory,
+    "assistant",
+    `Generated ${record.template} (${record.tone}) with ${record.complexity} complexity. Remaining credits: ${state.credits}.`
+  );
+  setGenerateLoading(false);
+}
+function setGenerateLoading(loading) {
+  state.loading = loading;
+  refs.generateBtn.disabled = loading;
+  refs.generateBtn.classList.toggle("loading-gradient", loading);
+  refs.generateBtnLabel.textContent = loading ? "Generating..." : "Generate";
+}
+function autoResizePrompt() {
+  refs.promptInput.style.height = "auto";
+  refs.promptInput.style.height = `${Math.max(refs.promptInput.scrollHeight, 120)}px`;
+}
+function handleExport(type) {
+  const latest = state.records[0];
+  if (!latest) {
+    addChatMessage(refs.chatHistory, "assistant", "Nothing to export yet. Generate a design first.");
+    return;
+  }
+  if (type === "html") {
+    downloadFile("design-export.html", latest.html, "text/html;charset=utf-8");
+    addChatMessage(refs.chatHistory, "assistant", "Export HTML completed.");
+    return;
+  }
+  const payload = JSON.stringify(latest, null, 2);
+  downloadFile("design-export.json", payload, "application/json;charset=utf-8");
+  addChatMessage(refs.chatHistory, "assistant", "Export JSON completed.");
+}
+function clearAuthHint() {
+  refs.authHint.textContent = "";
+  refs.authHint.classList.add("hidden");
+}
+function setAuthHint(message) {
+  refs.authHint.textContent = message;
+  refs.authHint.classList.remove("hidden");
 }
