@@ -1,0 +1,13 @@
+﻿{
+  "name": "ai-ui-generator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "High-end AI UI Generator with landing page, login gate, and TypeScript business logic",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
