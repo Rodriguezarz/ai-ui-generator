@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
@@ -16,23 +16,7 @@
       rel="stylesheet"
     />
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ["DM Sans", "sans-serif"],
-              display: ["Sora", "sans-serif"],
-            },
-            boxShadow: {
-              "panel-glow": "0 0 0 1px rgba(124, 58, 237, 0.35), 0 18px 40px rgba(37, 99, 235, 0.25)",
-              "soft-xl": "0 24px 60px rgba(0, 0, 0, 0.45)",
-            },
-          },
-        },
-      };
-    </script>
+    <link rel="stylesheet" href="./dist/tailwind.css" />
 
     <style>
       :root {
@@ -377,14 +361,14 @@
               </div>
 
               <div class="flex items-center gap-2 p-1 rounded-xl border" style="border-color: var(--border)">
-                <button class="device-btn px-3 py-1.5 text-sm rounded-lg bg-white/10" data-device="desktop">💻 Desktop</button>
-                <button class="device-btn px-3 py-1.5 text-sm rounded-lg text-slate-300 hover:bg-white/5 transition" data-device="tablet">📱 Tablet</button>
-                <button class="device-btn px-3 py-1.5 text-sm rounded-lg text-slate-300 hover:bg-white/5 transition" data-device="mobile">📱 Mobile</button>
+                <button class="device-btn px-3 py-1.5 text-sm rounded-lg bg-white/10" data-device="desktop">&#128187; Desktop</button>
+                <button class="device-btn px-3 py-1.5 text-sm rounded-lg text-slate-300 hover:bg-white/5 transition" data-device="tablet">&#128241; Tablet</button>
+                <button class="device-btn px-3 py-1.5 text-sm rounded-lg text-slate-300 hover:bg-white/5 transition" data-device="mobile">&#128241; Mobile</button>
               </div>
 
               <div class="relative">
                 <button id="exportBtn" class="h-9 px-4 rounded-lg border text-sm hover:bg-white/5 transition" style="border-color: var(--border)">
-                  Export ▾
+                  Export &#9662;
                 </button>
                 <div id="exportMenu" class="hidden absolute right-0 top-11 w-44 rounded-xl glass p-1 z-40">
                   <button data-export="html" class="export-item w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-white/10">Export HTML</button>

@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "ai-ui-generator",
   "version": "1.0.0",
   "private": true,
@@ -6,11 +6,15 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "bundle": "esbuild src/app.ts --bundle --format=esm --platform=browser --target=es2020 --outfile=dist/app.js",
-    "build": "npm run typecheck && npm run bundle",
+    "tailwind:build": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/tailwind.css --minify",
+    "tailwind:watch": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/tailwind.css --watch",
+    "build": "npm run typecheck && npm run bundle && npm run tailwind:build",
     "watch": "esbuild src/app.ts --bundle --format=esm --platform=browser --target=es2020 --outfile=dist/app.js --watch"
   },
   "devDependencies": {
     "esbuild": "^0.25.9",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5.9.3"
   }
 }
+
