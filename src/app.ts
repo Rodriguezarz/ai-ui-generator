@@ -1,4 +1,4 @@
-﻿import { DEVICE_SIZES, MAX_RECORDS } from "./config/constants";
+import { DEVICE_SIZES, MAX_RECORDS } from "./config/constants";
 import { createGuestSession, getAvatarInitial, resolveLogin } from "./services/auth.service";
 import {
   buildGenerationRecord,
@@ -281,11 +281,12 @@ async function simulateLoginTransition(): Promise<void> {
 
 function completeLogin(session: Session, notices: string[]): void {
   state.session = session;
-  saveSession(session);
   renderHeaderState();
   applyView("generator");
   refs.loginForm.reset();
   clearAuthHint();
+
+  saveSession(session);
 
   addChatMessage(refs.chatHistory, "assistant", `Welcome ${session.fullName}. Dashboard unlocked.`);
 
@@ -303,7 +304,7 @@ function renderHeaderState(): void {
     return;
   }
 
-  refs.profileName.textContent = `${state.session.fullName} • ${state.session.company}`;
+  refs.profileName.textContent = `${state.session.fullName} - ${state.session.company}`;
   refs.profileAvatar.textContent = getAvatarInitial(state.session.fullName);
 }
 
@@ -319,7 +320,7 @@ function hydrateConversation(): void {
     addChatMessage(
       refs.chatHistory,
       "assistant",
-      `Generated ${record.template} (${record.tone}) • Complexity: ${record.complexity} • ${formatDateTime(record.createdAt)}`
+      `Generated ${record.template} (${record.tone}) - Complexity: ${record.complexity} - ${formatDateTime(record.createdAt)}`
     );
   });
 }
@@ -434,3 +435,4 @@ function setAuthHint(message: string): void {
   refs.authHint.textContent = message;
   refs.authHint.classList.remove("hidden");
 }
+

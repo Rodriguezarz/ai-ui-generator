@@ -5,11 +5,11 @@
   "description": "High-end AI UI Generator with landing page, login gate, and TypeScript business logic",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "bundle": "esbuild src/app.ts --bundle --format=esm --platform=browser --target=es2020 --outfile=dist/app.js",
+    "bundle": "esbuild src/app.ts --bundle --format=iife --platform=browser --target=es2020 --outfile=dist/app.js",
     "tailwind:build": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/tailwind.css --minify",
     "tailwind:watch": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/tailwind.css --watch",
     "build": "npm run typecheck && npm run bundle && npm run tailwind:build",
-    "watch": "esbuild src/app.ts --bundle --format=esm --platform=browser --target=es2020 --outfile=dist/app.js --watch"
+    "watch": "esbuild src/app.ts --bundle --format=iife --platform=browser --target=es2020 --outfile=dist/app.js --watch"
   },
   "devDependencies": {
     "esbuild": "^0.25.9",
